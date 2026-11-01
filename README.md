@@ -36,24 +36,60 @@ docker compose down -v
 
 ---
 
-## 4. Preguntas Clave del Panel
+## 4. Preguntas Clave del Panel y Jefatura
 
 ### 1. Si se pierde el disco de la base, ¿cuántos datos se pierden (RPO)? ¿De qué depende?
-- **RPO:** Tiende a cero (del orden de segundos).
-- **Dependencia:** Depende de la frecuencia con la que los registros WAL se transfieren al repositorio externo (`archive_command`) y del parámetro `archive_timeout` (fijado en 300s en esta maqueta), que fuerza el cierre y envío de segmentos aun con baja carga transaccional.
+
+* **Datos que se perderían (RPO estimado):** Tiende a cero (del orden de segundos a pocos minutos en el peor de los casos).
+
+* **De qué depende:**
+
+  1. **Frecuencia de envío:** Depende de qué tan rápido viajan los registros de transacciones (WAL) al almacenamiento de respaldo y del parámetro `archive_timeout` (fijado en 300 segundos en esta maqueta), el cual fuerza el cierre y envío de registros aun con baja actividad en el sistema.
+
+  2. **Carga del sistema y saturación de disco:** Si durante el incidente entra un volumen alto de transacciones o el disco presenta alta contención de I/O, el despacho de los registros WAL puede retrasarse, ampliando temporalmente la ventana de datos en riesgo.
+
+  3. **Control operativo:** El sistema debe contar con alarmas automáticas que avisen al equipo de inmediato si los respaldos presentan desfase (*lag*) respecto al tráfico real, permitiendo intervenir antes de una falla física del equipo.
 
 ### 2. ¿Cuánto tarda en volver a estar disponible (RTO)? ¿Cómo crece con el tamaño de la base?
-- **RTO:** Tiempo de restauración del último backup base físico + tiempo de reproducción secuencial de los registros WAL generados hasta el punto de corte.
-- **Crecimiento:** Con el volumen de la base crece principalmente la fase de restauración física. pgBackRest mitiga esto mediante copias multihilo (`process-max`) y transferencias delta (`--delta`). En bases de alto volumen, se combinan backups completos con respaldos diferenciales frecuentes.
+
+* **Tiempo estimado de recuperación (RTO):** Se compone de dos etapas sucesivas: el tiempo requerido para restaurar los archivos del respaldo base más el tiempo que tarda el motor de base de datos en leer y reprocesar secuencialmente los registros de transacciones acumulados hasta el punto de corte.
+
+* **Cómo crece y qué lo condiciona:**
+
+  1. **Copia física vs. reprocesamiento interno:** pgBackRest agiliza la descarga de archivos mediante múltiples hilos concurrentes (`process-max`) y transferencias delta (`--delta`). No obstante, la lectura y aplicación de transacciones (*redo/replay*) se procesa en un único hilo dentro del motor; ante una alta acumulación de operaciones, esta etapa se convierte en el cuello de botella.
+
+  2. **Factores de hardware y sistema operativo:** El tiempo final está sujeto al rendimiento del almacenamiento (IOPS y velocidad de lectura/escritura), al sistema de archivos configurado y a los parámetros de memoria asignados al motor para transacciones y checkpoints.
+
+  3. **Estrategia para bases de gran tamaño:** Para evitar que el RTO escale desmedidamente conforme crece el volumen de datos, la estrategia exige combinar respaldos completos semanales con respaldos diferenciales o incrementales frecuentes, reduciendo la cantidad de registros que el motor debe procesar uno a uno.
 
 ### 3. ¿Qué pasó con lo escrito después del incidente y cómo lo trató?
-- Por diseño, el PITR rebobina la base descartando todo cambio posterior al timestamp indicado.
-- **Tratamiento:** Se realizó una extracción preventiva (`COPY`) de las postulaciones creadas tras el corte (`creado_en > TARGET_TIME`). Posterior a la recuperación de la base, se reinsertaron a través de una tabla temporal y se sincronizó el correlativo de la secuencia `SERIAL` (`setval`) para garantizar consistencia sin colisiones de identificadores.
+
+* **Comportamiento por diseño de PITR:**
+  Al aplicar esta técnica, la base de datos se retrocede en el tiempo hasta el segundo exacto previo a la instrucción errónea. Por diseño de PostgreSQL, todo lo ocurrido después de esa marca temporal queda fuera de la base restaurada al promoverse una nueva línea de tiempo (*timeline*).
+
+* **Tratamiento en la demostración:**
+  Como el motor seguía encendido y accesible para consultas de lectura, se ejecutó un rescate preventivo: se extrajeron a un archivo CSV las solicitudes legítimas ingresadas tras el corte (`creado_en > TARGET_TIME`). Posterior a la recuperación con pgBackRest, se reinyectaron esas filas mediante una tabla temporal y se sincronizó el correlativo de la secuencia autoincremental (`setval`), impidiendo colisiones en los trámites siguientes.
+
+* **Criterio para un entorno de producción real:**
+  En una plataforma con alta concurrencia ciudadana, rescatar datos manualmente con archivos planos sobre la misma base no es la mejor opción por riesgo de errores humanos o inconsistencias relacionales. La práctica recomendada en producción es **no sobrescribir la base afectada**: se despliega una instancia paralela temporal (un clon), se ejecuta el PITR allí, se valida la información y se concilian selectivamente las transacciones válidas antes del traspaso definitivo del tráfico.
 
 ### 4. ¿Dónde deben vivir los respaldos? ¿Qué pasa si están en el mismo disco o servidor que la base?
-- Deben vivir en una infraestructura independiente y separada físicamente (ej. almacenamiento de objetos S3 o storage dedicado NFS).
-- Si residen en el mismo disco o host físico, cualquier falla catastrófica de hardware o corrupción de volumen destruirá simultáneamente los datos operativos y los respaldos.
+
+* **El riesgo principal:**
+  Si las copias de seguridad residen en el mismo disco o servidor físico de la base de datos, se genera un punto único de falla. Ante un daño irreparable de disco, corrupción del sistema de archivos o siniestro del servidor, se destruyen simultáneamente los datos de producción y los respaldos.
+
+* **Dónde deben vivir (Estrategia por capas):**
+
+  1. **Copia local inmediata:** Conviene mantener una copia reciente en un almacenamiento secundario dentro del mismo entorno para resolver fallos lógicos o humanos con máxima velocidad, evitando demoras de transferencia por red.
+
+  2. **Copia externa y aislada:** Al mismo tiempo, los respaldos y registros WAL deben transferirse continuamente a una infraestructura independiente (almacenamiento en red aislado o almacenamiento de objetos en la nube), garantizando la supervivencia de los datos ante catástrofes mayores o pérdida total del equipamiento.
 
 ### 5. ¿Cómo sabría, un martes cualquiera, que los respaldos de verdad sirven?
-- Un respaldo no existe hasta que se comprueba su restauración.
-- Se implementan pipelines automáticos periódicos en un ambiente de staging que toman el último backup, ejecutan la restauración completa, validan integridad física y lógica (`pg_amcheck` y consultas de negocio) y emiten alertas si el proceso falla o excede el umbral de RTO.
+
+* **Principio fundamental:** Un respaldo no se considera válido hasta que se demuestra que puede restaurarse e iniciar operaciones exitosamente.
+
+* **Verificación técnica diaria y automatizada:**
+  Se implementan tareas programadas en un entorno de pruebas aislado que descargan el último respaldo generado, ejecutan una restauración completa, levantan el motor y corren comprobaciones de integridad física y lógica (`pg_amcheck` y consultas de negocio). Si la restauración falla o excede el tiempo estimado, se emiten alertas inmediatas al equipo de operaciones.
+
+* **Simulacros periódicos de continuidad de servicio:**
+  De forma periódica y planificada, se ejecutan ejercicios integrales de recuperación ante desastres (*DR drills*). Estas pruebas simulan escenarios de indisponibilidad total para medir y cronometrar en condiciones reales cuánto tarda el equipo y la plataforma en restablecer la atención a los usuarios, certificando que los tiempos comprometidos (RTO y RPO) se cumplan operativamente.
