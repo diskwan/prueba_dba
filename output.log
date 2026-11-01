@@ -1,0 +1,135 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 484B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 321B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/postgres:17
+#3 DONE 0.7s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/3] FROM docker.io/library/postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
+#5 resolve docker.io/library/postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f 0.0s done
+#5 DONE 0.0s
+
+#6 [2/3] RUN apt-get update &&     apt-get install -y pgbackrest &&     rm -rf /var/lib/apt/lists/*
+#6 CACHED
+
+#7 [3/3] RUN mkdir -p -m 770 /var/log/pgbackrest /var/lib/pgbackrest /etc/pgbackrest &&     chown -R postgres:postgres /var/log/pgbackrest /var/lib/pgbackrest /etc/pgbackrest
+#7 CACHED
+
+#8 exporting to image
+#8 exporting layers done
+#8 exporting manifest sha256:400d627e8b85cf1b9e5201208d17f09968647532cc936db83b54012badbefe89 done
+#8 exporting config sha256:3bce5b9f8caaf4a6f4d9397402a4a855580a29216ea2624372a1ad700aa35bcb done
+#8 exporting attestation manifest sha256:d986a9326c8acd1621744a758469e8549729b75e28df975e9f68ca7197614da2 0.0s done
+#8 exporting manifest list sha256:2de32b276afb31899a5d40a0429d35170a3f299bf89ef15a5d23391051a80480
+#8 exporting manifest list sha256:2de32b276afb31899a5d40a0429d35170a3f299bf89ef15a5d23391051a80480 0.0s done
+#8 naming to docker.io/library/prueba-dba-db:latest done
+#8 unpacking to docker.io/library/prueba-dba-db:latest done
+#8 DONE 0.1s
+
+#9 resolving provenance for metadata file
+#9 DONE 0.0s
+2026-11-01 02:16:16.918 P00   INFO: stanza-create command begin 2.60.0: --exec-id=125-b416b8ed --log-level-console=info --log-level-file=detail --pg1-path=/var/lib/postgresql/data --pg1-user=postgres --repo1-path=/var/lib/pgbackrest --stanza=app_stanza
+2026-11-01 02:16:16.933 P00   INFO: stanza-create for stanza 'app_stanza' on repo1
+2026-11-01 02:16:16.965 P00   INFO: stanza-create command end: completed successfully (50ms)
+2026-11-01 02:16:17.295 P00   INFO: check command begin 2.60.0: --exec-id=133-dc06c8c0 --log-level-console=info --log-level-file=detail --pg1-path=/var/lib/postgresql/data --pg1-user=postgres --repo1-path=/var/lib/pgbackrest --stanza=app_stanza
+2026-11-01 02:16:17.313 P00   INFO: check repo1 configuration (primary)
+2026-11-01 02:16:17.396 P00   INFO: check repo1 archive for WAL (primary)
+2026-11-01 02:16:17.997 P00   INFO: WAL segment 000000010000000000000002 successfully archived to '/var/lib/pgbackrest/archive/app_stanza/17-1/0000000100000000/000000010000000000000002-40873ae4de80c73cb6494c27a6f1c760a27bd8be.gz' on repo1
+2026-11-01 02:16:17.997 P00   INFO: check command end: completed successfully (708ms)
+2026-11-01 02:16:18.185 P00   INFO: backup command begin 2.60.0: --exec-id=142-ff1188d2 --log-level-console=info --log-level-file=detail --pg1-path=/var/lib/postgresql/data --pg1-user=postgres --process-max=2 --repo1-path=/var/lib/pgbackrest --stanza=app_stanza --start-fast --type=full
+2026-11-01 02:16:18.186 P00   WARN: option 'repo1-retention-full' is not set for 'repo1-retention-full-type=count', the repository may run out of space
+                                    HINT: to retain full backups indefinitely (without warning), set option 'repo1-retention-full' to the maximum.
+2026-11-01 02:16:18.198 P00   INFO: execute backup start: backup begins after the requested immediate checkpoint completes
+2026-11-01 02:16:18.362 P00   INFO: backup start archive = 000000010000000000000003, lsn = 0/3000028
+2026-11-01 02:16:18.362 P00   INFO: check archive for segment 000000010000000000000003
+2026-11-01 02:16:22.139 P00   INFO: execute backup stop and wait for all WAL segments to archive
+2026-11-01 02:16:22.193 P00   INFO: backup stop archive = 000000010000000000000004, lsn = 0/4000050
+2026-11-01 02:16:22.196 P00   INFO: check archive for segment(s) 000000010000000000000003:000000010000000000000004
+2026-11-01 02:16:22.517 P00   INFO: new backup label = 20261101-021618F
+2026-11-01 02:16:22.593 P00   INFO: full backup size = 29.4MB, file total = 1267
+2026-11-01 02:16:22.593 P00   INFO: backup command end: completed successfully (4410ms)
+2026-11-01 02:16:22.593 P00   INFO: expire command begin 2.60.0: --exec-id=142-ff1188d2 --log-level-console=info --log-level-file=detail --repo1-path=/var/lib/pgbackrest --stanza=app_stanza
+2026-11-01 02:16:22.594 P00   INFO: option 'repo1-retention-archive' is not set - archive logs will not be expired
+2026-11-01 02:16:22.594 P00   INFO: expire command end: completed successfully (1ms)
+2026-11-01 02:16:28.078 P00   INFO: restore command begin 2.60.0: --delta --exec-id=1-658fcf25 --log-level-console=info --log-level-file=detail --pg1-path=/var/lib/postgresql/data --process-max=2 --repo1-path=/var/lib/pgbackrest --stanza=app_stanza --target="(1 row)" --target-action=promote --type=time
+2026-11-01 02:16:28.085 P00  ERROR: [029]: automatic backup set selection cannot be performed with provided time '(1 row)'
+                                    HINT: time format must be YYYY-MM-DD HH:MM:SS with optional msec and optional timezone (+/- HH or HHMM or HH:MM) - if timezone is omitted, local time is assumed (for UTC use +00)
+2026-11-01 02:16:28.085 P00   INFO: restore command end: aborted with exception [029]
+
+======================================================================
+ >>> Paso 0: Preparacion y arranque de contenedores
+======================================================================
+Limpiando entorno previo...
+Construyendo imagen y levantando servicio...
+
+======================================================================
+ >>> Paso 1: Inicializacion de base, datos iniciales y backup completo
+======================================================================
+Inicializando stanza en pgBackRest...
+Ejecutando primer backup completo fisico...
+Insertando registro posterior al backup full...
+
+[ESTADO: 1. ANTES DEL INCIDENTE (DATOS INTEGROS)]
+id |     rut      |     nombre     |  estado   |      hora       
+----+--------------+----------------+-----------+-----------------
+  1 | 11.111.111-1 | Juan Perez     | PENDIENTE | 02:16:16.699104
+  2 | 22.222.222-2 | Maria Gonzalez | APROBADO  | 02:16:16.699345
+  3 | 33.333.333-3 | Carlos Tapia   | PENDIENTE | 02:16:16.699353
+  4 | 44.444.444-4 | Andrea Soto    | RECHAZADO | 02:16:16.699357
+  5 | 55.555.555-5 | Roberto Diaz   | PENDIENTE | 02:16:16.699361
+  6 | 66.666.666-6 | Valeria Munoz  | PENDIENTE | 02:16:22.817105
+(6 rows)
+
+======================================================================
+ >>> Paso 2: Captura del timestamp de corte y simulacion del UPDATE sin WHERE
+======================================================================
+Timestamp de corte para PITR: (1 row)
+Ejecutando: UPDATE postulaciones SET estado = 'RECHAZADO_ERROR'; (Sin WHERE)
+
+[ESTADO: 2. DESPUES DEL ERROR (BASE CORRUPTA)]
+id |     rut      |     nombre     |     estado      |      hora       
+----+--------------+----------------+-----------------+-----------------
+  1 | 11.111.111-1 | Juan Perez     | RECHAZADO_ERROR | 02:16:16.699104
+  2 | 22.222.222-2 | Maria Gonzalez | RECHAZADO_ERROR | 02:16:16.699345
+  3 | 33.333.333-3 | Carlos Tapia   | RECHAZADO_ERROR | 02:16:16.699353
+  4 | 44.444.444-4 | Andrea Soto    | RECHAZADO_ERROR | 02:16:16.699357
+  5 | 55.555.555-5 | Roberto Diaz   | RECHAZADO_ERROR | 02:16:16.699361
+  6 | 66.666.666-6 | Valeria Munoz  | RECHAZADO_ERROR | 02:16:22.817105
+(6 rows)
+
+======================================================================
+ >>> Paso 3: Llegada de postulaciones legitimas post-incidente
+======================================================================
+
+[ESTADO: 3. CON FILAS NUEVAS QUE NO DEBEN PERDERSE]
+id |     rut      |     nombre      |     estado      |      hora       
+----+--------------+-----------------+-----------------+-----------------
+  1 | 11.111.111-1 | Juan Perez      | RECHAZADO_ERROR | 02:16:16.699104
+  2 | 22.222.222-2 | Maria Gonzalez  | RECHAZADO_ERROR | 02:16:16.699345
+  3 | 33.333.333-3 | Carlos Tapia    | RECHAZADO_ERROR | 02:16:16.699353
+  4 | 44.444.444-4 | Andrea Soto     | RECHAZADO_ERROR | 02:16:16.699357
+  5 | 55.555.555-5 | Roberto Diaz    | RECHAZADO_ERROR | 02:16:16.699361
+  6 | 66.666.666-6 | Valeria Munoz   | RECHAZADO_ERROR | 02:16:22.817105
+  7 | 77.777.777-7 | Daniela Lagos   | PENDIENTE       | 02:16:26.354934
+  8 | 88.888.888-8 | Gonzalo Morales | APROBADO        | 02:16:26.355121
+(8 rows)
+
+======================================================================
+ >>> Paso 4: Rescate preventivo de filas posteriores a CSV
+======================================================================
+Filas respaldadas localmente en 'delta_postulaciones.csv':
+
+
+======================================================================
+ >>> Paso 5: Forzar archivado de WAL, detencion y PITR con pgBackRest
+======================================================================
+Deteniendo contenedor de base de datos...
+Ejecutando restore delta con pgBackRest hasta '(1 row)'...

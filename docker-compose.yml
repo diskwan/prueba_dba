@@ -1,0 +1,30 @@
+services:
+  db:
+    build: .
+    container_name: db_conecta_rural
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: supersecretpassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - pgbackrest_repo:/var/lib/pgbackrest
+      - ./pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "archive_mode=on"
+      - "-c"
+      - "archive_command=pgbackrest --stanza=app_stanza archive-push %p"
+      - "-c"
+      - "archive_timeout=300"
+      - "-c"
+      - "restore_command=pgbackrest --stanza=app_stanza archive-get %f %p"
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
+  pgbackrest_repo:
