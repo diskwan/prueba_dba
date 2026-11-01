@@ -22,6 +22,24 @@ def run_cmd(cmd: list[str], check: bool = True, capture: bool = False) -> str:
     return res.stdout if capture else ""
 
 def psql(query: str, capture: bool = False) -> str:
+    # -A (sin alineacion), -t (solo tuplas sin cabeceras ni pie), -q (modo silencioso)
+    cmd = [
+        "docker", "compose", "exec", "-T", "-u", "postgres", "db",
+        "psql", "-d", "appdb", "-A", "-t", "-q"
+    ]
+    proc = subprocess.run(
+        cmd,
+        input=query,
+        text=True,
+        capture_output=True
+    )
+    if proc.returncode != 0:
+        print(f" [ERROR STDERR]: {proc.stderr}")
+        raise RuntimeError(f"Fallo la consulta SQL:\n{query}")
+    return proc.stdout if capture else ""
+
+def psql_table(query: str) -> str:
+    # Consulta con formato visual de tabla para mostrar en pantalla
     cmd = [
         "docker", "compose", "exec", "-T", "-u", "postgres", "db",
         "psql", "-d", "appdb"
@@ -35,11 +53,11 @@ def psql(query: str, capture: bool = False) -> str:
     if proc.returncode != 0:
         print(f" [ERROR STDERR]: {proc.stderr}")
         raise RuntimeError(f"Fallo la consulta SQL:\n{query}")
-    return proc.stdout if capture else ""
+    return proc.stdout
 
 def print_table_state(label: str):
     print(f"\n[ESTADO: {label}]")
-    out = psql("SELECT id, rut, nombre, estado, to_char(creado_en, 'HH24:MI:SS.US') as hora FROM postulaciones ORDER BY id;", capture=True)
+    out = psql_table("SELECT id, rut, nombre, estado, to_char(creado_en, 'HH24:MI:SS.US') as hora FROM postulaciones ORDER BY id;")
     print(out.strip())
 
 def wait_for_postgres(timeout: int = 30):
@@ -95,7 +113,7 @@ def main():
 
     log_step("Paso 2: Captura del timestamp de corte y simulacion del UPDATE sin WHERE")
     time.sleep(1)
-    target_time = psql("SELECT clock_timestamp();", capture=True).strip().splitlines()[-1].strip()
+    target_time = psql("SELECT clock_timestamp();", capture=True).strip()
     print(f"Timestamp de corte para PITR: {target_time}")
     time.sleep(1)
 
